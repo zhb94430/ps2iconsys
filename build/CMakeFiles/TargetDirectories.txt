@@ -1,0 +1,3 @@
+/Users/Peter/GitRepos/ps2iconsys/build/CMakeFiles/ps2icon_to_obj.dir
+/Users/Peter/GitRepos/ps2iconsys/build/CMakeFiles/edit_cache.dir
+/Users/Peter/GitRepos/ps2iconsys/build/CMakeFiles/rebuild_cache.dir

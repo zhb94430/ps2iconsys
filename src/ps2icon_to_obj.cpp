@@ -10,6 +10,17 @@
 #include "../gbLib/include/gbColor.hpp"
 #include "../gbLib/include/gbImageLoader.hpp"
 
+// OpenUSD Includes
+#include "pxr/pxr.h"
+#include "pxr/usd/usd/stage.h"
+#include "pxr/usd/usdGeom/mesh.h"
+#include "pxr/usd/usdGeom/primvarsAPI.h"
+#include "pxr/usd/usdShade/material.h"
+#include "pxr/usd/usdShade/shader.h"
+#include "pxr/usd/usdShade/materialBindingAPI.h"
+#include "pxr/base/vt/array.h"
+#include "pxr/base/gf/vec3f.h"
+
 char const* ps2_input_file      = NULL;		///< path to the input file
 char const* obj_output_file     = NULL;		///< path to the output file
 char const* texture_output_file = NULL;		///< path to the output texture file
@@ -110,6 +121,93 @@ void WriteOBJFile(PS2Icon* ps2_icon)
 	ps2_icon->BuildMesh(&obj_mesh);
 	if(verbose_output)
 		std::cout << "done." << std::endl;
+
+	//WIP
+
+
+
+	// Set up OpenUSD
+	PXR_NAMESPACE_USING_DIRECTIVE
+	// Initialize stage & mesh
+    UsdStageRefPtr stage = UsdStage::CreateNew("default.usda");
+    UsdGeomMesh mesh = UsdGeomMesh::Define(stage, SdfPath("/defaultMesh"));
+
+	// Define data arrays to obtain mesh geometry from OBJ_Mesh
+	std::vector<double> geometry(obj_mesh.GetNVertices()*3);
+	std::vector<double> normals(obj_mesh.GetNVertices()*3);
+	std::vector<double> texture(obj_mesh.GetNVertices()*3);
+	std::vector<OBJ_Mesh::Face> faces(obj_mesh.GetNFaces());
+
+	// Get mesh geometry from OBJ_Mesh
+	obj_mesh.GetMeshGeometry(&geometry[0], &normals[0], &texture[0], &faces[0], 1.0);
+
+    // Pass the vertex positions
+    VtVec3fArray points_usd;
+	points_usd.reserve(obj_mesh.GetNVertices());
+	for(size_t i=0; i<obj_mesh.GetNVertices(); i++) {
+		points_usd.push_back(GfVec3f(geometry[i*3], geometry[i*3+1], geometry[i*3+2]));
+	}
+	mesh.CreatePointsAttr().Set(points_usd);
+
+	// Pass the normals
+    VtVec3fArray normals_usd;
+	normals_usd.reserve(obj_mesh.GetNVertices());
+	for(size_t i=0; i<obj_mesh.GetNVertices(); i++) {
+		normals_usd.push_back(GfVec3f(normals[i*3], normals[i*3+1], normals[i*3+2]));
+	}
+	mesh.CreateNormalsAttr().Set(normals_usd);
+
+	// Pass the texture coordinates
+	// VtVec2dArray texture_coords_usd;
+	// texture_coords_usd.reserve(obj_mesh.GetNVertices());
+	// for(size_t i=0; i<obj_mesh.GetNVertices(); i++) {
+	// 	texture_coords_usd.push_back(GfVec2d(texture[i*3], texture[i*3+1]));
+	// }
+
+	// Create the UV primvar
+	// UsdGeomPrimvarsAPI primvarsAPI(mesh);
+	// UsdGeomPrimvar uvPrimvar = primvarsAPI.CreatePrimvar(TfToken("st"), SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->vertex);
+	// uvPrimvar.Set(texture_coords_usd);
+
+	// Pass the faces
+	VtIntArray faceVertexCounts(obj_mesh.GetNFaces(), 3);
+	VtIntArray faceVertexIndices;
+	faceVertexIndices.reserve(obj_mesh.GetNFaces()*3);
+	for(size_t i=0; i<obj_mesh.GetNFaces(); i++) {
+		faceVertexIndices.push_back(faces[i].vert1);
+		faceVertexIndices.push_back(faces[i].vert2);
+		faceVertexIndices.push_back(faces[i].vert3);
+	}
+	mesh.CreateFaceVertexCountsAttr().Set(faceVertexCounts);
+	mesh.CreateFaceVertexIndicesAttr().Set(faceVertexIndices);
+
+	// Setup the material
+	// UsdShadeMaterial material = UsdShadeMaterial::Define(stage, SdfPath("/Root/Material"));
+	// UsdShadeShader shader = UsdShadeShader::Define(stage, SdfPath("/Root/Material/Shader"));
+	// shader.CreateIdAttr(VtValue("UsdPreviewSurface"));
+
+	// UsdShadeInput diffuseColorInput = shader.CreateInput(TfToken("diffuseColor"), SdfValueTypeNames->Color3f);
+	// diffuseColorInput.Set(GfVec3f(1.0f, 0.0f, 0.0f));
+
+	// material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), TfToken("surface"));
+
+	// UsdShadeMaterialBindingAPI shadeMaterialBindingAPI(mesh);
+	// shadeMaterialBindingAPI.Bind(material);
+
+    // Save the stage to a file
+    stage->Save();
+	// if (!stage->Export("./test.usd"))
+	// {
+	// 	std::cerr << "Failed to write USD file" << std::endl;	
+	// }
+	// else
+	// {
+	// 	std::cout << "Successfully wrote USD file" << std::endl;
+	// }
+
+
+
+	// WIP End
 
 	if(verbose_output)
 		std::cout << " * Writing geometry output to file \"" << obj_output_file << "\"...";

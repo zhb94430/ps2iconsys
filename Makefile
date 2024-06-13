@@ -2,9 +2,15 @@ OBJECTS = obj_loader.o ps2_iconsys.o ps2_ps2icon.o \
 		  gbImageLoader.o gbImageLoader_TGA.o \
 		  gbImageLoader_BMP.o gbException.o
 CC = g++
-CFLAGS = -Wall -O2
+CFLAGS = -Wall -O2 -std=c++17
+CFLAGS_DEBUG = -Wall -g -std=c++17
 
 VPATH = src include gbLib/src gbLib/include
+
+INC_DIR = /Users/Peter/GitRepos/OpenUSD_Install/include
+CFLAGS += -I$(INC_DIR)
+CFLAGS_DEBUG += -I$(INC_DIR)
+
 
 all: ps2icon_tools
 
@@ -23,6 +29,9 @@ obj_to_ps2: $(OBJECTS) obj_to_ps2icon.o
 	$(CC) $(CFLAGS) -c $<
 
 remake: clean all
+
+debug: CFLAGS = $(CFLAGS_DEBUG)
+debug: remake
 
 .PHONY : clean doxygen_doc
 clean:
