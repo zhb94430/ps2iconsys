@@ -45,23 +45,26 @@ void OBJ_Mesh::GetMeshGeometryUnindexed(T* mesh_geometry, T* mesh_normals, T* me
 
 template<typename T>
 void OBJ_Mesh::GetMeshGeometry(T* mesh_geometry, T* mesh_normals, T* mesh_texture, OBJ_Mesh::Face* mesh_faces, T scale) const {
-	int i = 0;
 	if(mesh_geometry) {
+		int i = 0;
 		for(std::vector<double>::const_iterator iter = m_geometry.begin(); iter != m_geometry.end(); ++iter, ++i) {
 			mesh_geometry[i] = static_cast<T>( (*iter) * scale );
 		}
 	}
 	if(mesh_normals) {
+		int i = 0;
 		for(std::vector<double>::const_iterator iter = m_normals.begin(); iter != m_normals.end(); ++iter, ++i) {
 			mesh_normals[i] = static_cast<T>( *iter );
 		}
 	}
 	if(mesh_texture) {
+		int i = 0;
 		for(std::vector<double>::const_iterator iter = m_texcoords.begin(); iter != m_texcoords.end(); ++iter, ++i) {
 			mesh_texture[i] = static_cast<T>( *iter );
 		}
 	}
 	if(mesh_faces) {
+		int i = 0;
 		for(std::vector<Face>::const_iterator iter = m_faces.begin(); iter != m_faces.end(); ++iter, ++i) {
 			mesh_faces[i].vert1           = (*iter).vert1;
 			mesh_faces[i].vert2           = (*iter).vert2;
