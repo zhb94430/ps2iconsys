@@ -145,7 +145,7 @@ void WriteOBJFile(PS2Icon* ps2_icon)
     VtVec3fArray points_usd;
 	points_usd.reserve(obj_mesh.GetNVertices());
 	for(size_t i=0; i<obj_mesh.GetNVertices(); i++) {
-		points_usd.push_back(GfVec3f(geometry[i*3], geometry[i*3+1], geometry[i*3+2]));
+		points_usd.push_back(GfVec3f(*(obj_mesh.GetVertexX(i)), -*(obj_mesh.GetVertexY(i)), *(obj_mesh.GetVertexZ(i))));
 	}
 	mesh.CreatePointsAttr().Set(points_usd);
 
@@ -153,21 +153,21 @@ void WriteOBJFile(PS2Icon* ps2_icon)
     VtVec3fArray normals_usd;
 	normals_usd.reserve(obj_mesh.GetNVertices());
 	for(size_t i=0; i<obj_mesh.GetNVertices(); i++) {
-		normals_usd.push_back(GfVec3f(normals[i*3], normals[i*3+1], normals[i*3+2]));
+		normals_usd.push_back(GfVec3f(*(obj_mesh.GetNormalX(i)), *(obj_mesh.GetNormalY(i)), *(obj_mesh.GetNormalZ(i))));
 	}
 	mesh.CreateNormalsAttr().Set(normals_usd);
 
 	// Pass the texture coordinates
-	// VtVec2dArray texture_coords_usd;
-	// texture_coords_usd.reserve(obj_mesh.GetNVertices());
-	// for(size_t i=0; i<obj_mesh.GetNVertices(); i++) {
-	// 	texture_coords_usd.push_back(GfVec2d(texture[i*3], texture[i*3+1]));
-	// }
+	VtVec2fArray texture_coords_usd;
+	texture_coords_usd.reserve(obj_mesh.GetNVertices());
+	for(size_t i=0; i<obj_mesh.GetNVertices(); i++) {
+		texture_coords_usd.push_back(GfVec2f(*(obj_mesh.GetTextureX(i)), *(obj_mesh.GetTextureY(i))));
+	}
 
 	// Create the UV primvar
-	// UsdGeomPrimvarsAPI primvarsAPI(mesh);
-	// UsdGeomPrimvar uvPrimvar = primvarsAPI.CreatePrimvar(TfToken("st"), SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->vertex);
-	// uvPrimvar.Set(texture_coords_usd);
+	UsdGeomPrimvarsAPI primvarsAPI(mesh);
+	UsdGeomPrimvar uvPrimvar = primvarsAPI.CreatePrimvar(TfToken("st"), SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->vertex);
+	uvPrimvar.Set(texture_coords_usd);
 
 	// Pass the faces
 	VtIntArray faceVertexCounts(obj_mesh.GetNFaces(), 3);
