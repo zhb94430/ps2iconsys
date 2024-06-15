@@ -44,6 +44,6 @@ add_executable(ps2icon_to_obj
 #     src/iconsys_builder.cpp)
 
 # Link each executable with the required USD libraries
-target_link_libraries(ps2icon_to_obj usd_usd usd_usdGeom usd_sdf usd_tf usd_vt) 
+target_link_libraries(ps2icon_to_obj usd_usd usd_usdGeom usd_sdf usd_tf usd_vt usd_usdShade) 
 # target_link_libraries(obj_to_ps2icon usd_usd usd_usdGeom) 
 # target_link_libraries(iconsys_builder usd_usd usd_usdGeom)
