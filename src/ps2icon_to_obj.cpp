@@ -231,9 +231,13 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 	VtIntArray faceVertexIndices;
 	faceVertexIndices.reserve(obj_mesh.GetNFaces()*3);
 	for(size_t i=0; i<obj_mesh.GetNFaces(); i++) {
-		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert1);
-		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert2);
+		// faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert1);
+		// faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert2);
+		// faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert3);
+
 		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert3);
+		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert2);
+		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert1);
 	}
 	mesh.CreateFaceVertexCountsAttr().Set(faceVertexCounts);
 	mesh.CreateFaceVertexIndicesAttr().Set(faceVertexIndices);
