@@ -52,6 +52,9 @@ public:
 	 * @param[in] name Name of the mesh as null-terminated C-string
 	 * @throw std::bad_alloc
 	 */
+	void MergeVertices();
+	/** Merge duplicated vertices
+	*/
 	void SetName(char const* name);
 	/** Replace the current geometry data
 	 * @param[in] data Vector holding new geometry data

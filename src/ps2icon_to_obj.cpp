@@ -181,6 +181,8 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 	if(verbose_output)
 		std::cout << "done." << std::endl;
 
+	// obj_mesh.MergeVertices();
+
 	// Set up OpenUSD
 	PXR_NAMESPACE_USING_DIRECTIVE
 	// Initialize stage & mesh
@@ -221,7 +223,7 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 
 	// Create the UV primvar
 	UsdGeomPrimvarsAPI primvarsAPI(mesh);
-	UsdGeomPrimvar uvPrimvar = primvarsAPI.CreatePrimvar(TfToken("st"), SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->vertex);
+	UsdGeomPrimvar uvPrimvar = primvarsAPI.CreatePrimvar(TfToken("st"), SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->varying);
 	uvPrimvar.Set(texture_coords_usd);
 
 	// Pass the faces

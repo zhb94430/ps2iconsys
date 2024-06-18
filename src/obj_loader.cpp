@@ -7,6 +7,8 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <map>
+#include <algorithm>
 
 OBJ_FileLoader::OBJ_FileLoader()
 {
@@ -246,6 +248,58 @@ OBJ_Mesh::OBJ_Mesh(OBJ_Mesh const& rhs)
 	this->SetNormals(rhs.m_normals);
 	this->SetTextureData(rhs.m_texcoords);
 	this->SetFaceData(rhs.m_faces);
+}
+
+struct VertexComparator {
+    bool operator()(const std::vector<double>& a, const std::vector<double>& b) const {
+        if (std::fabs(a[0] - b[0]) > 1e-6) return a[0] < b[0];
+        if (std::fabs(a[1] - b[1]) > 1e-6) return a[1] < b[1];
+        return std::fabs(a[2] - b[2]) > 1e-6 && a[2] < b[2];
+    }
+};
+
+void OBJ_Mesh::MergeVertices()
+{
+	// Merge vertices
+    std::map<std::vector<double>, int, VertexComparator> uniqueVertices;
+    std::vector<double> cleanedVertices;
+    std::vector<double> cleanedNormals;
+    std::vector<double> cleanedTexcoords;
+    std::vector<int> vertexRemap(GetNVertices());
+
+    for (size_t i = 0; i < GetNVertices(); ++i) {
+        std::vector<double> v = {m_geometry[i * 3], m_geometry[i * 3 + 1], m_geometry[i * 3 + 2]};
+        if (uniqueVertices.find(v) == uniqueVertices.end()) {
+            uniqueVertices[v] = cleanedVertices.size() / 3;
+            cleanedVertices.insert(cleanedVertices.end(), {v[0], v[1], v[2]});
+
+            // Copy corresponding normals and texture coordinates
+            cleanedNormals.insert(cleanedNormals.end(), {m_normals[i * 3], m_normals[i * 3 + 1], m_normals[i * 3 + 2]});
+            cleanedTexcoords.insert(cleanedTexcoords.end(), {m_texcoords[i * 3], m_texcoords[i * 3 + 1], m_texcoords[i * 3 + 2]});
+        }
+        vertexRemap[i] = uniqueVertices[v];
+    }
+
+    // Update face indices
+    for (size_t i = 0; i < m_faces.size(); ++i) {
+        m_faces[i].vert1 = vertexRemap[m_faces[i].vert1];
+        m_faces[i].vert2 = vertexRemap[m_faces[i].vert2];
+        m_faces[i].vert3 = vertexRemap[m_faces[i].vert3];
+
+        // Normals and texture coordinates are directly copied
+        m_faces[i].normal1 = vertexRemap[m_faces[i].normal1];
+        m_faces[i].normal2 = vertexRemap[m_faces[i].normal2];
+        m_faces[i].normal3 = vertexRemap[m_faces[i].normal3];
+
+        m_faces[i].texture1 = vertexRemap[m_faces[i].texture1];
+        m_faces[i].texture2 = vertexRemap[m_faces[i].texture2];
+        m_faces[i].texture3 = vertexRemap[m_faces[i].texture3];
+    }
+
+    // Replace original data with cleaned data
+    m_geometry = cleanedVertices;
+    m_normals = cleanedNormals;
+    m_texcoords = cleanedTexcoords;
 }
 
 void OBJ_Mesh::SetName(char const* name) {
