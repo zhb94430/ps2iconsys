@@ -202,7 +202,8 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
     VtVec3fArray points_usd;
 	points_usd.reserve(obj_mesh.GetNVertices());
 	for(size_t i=0; i<obj_mesh.GetNVertices(); i++) {
-		points_usd.push_back(GfVec3f(*(obj_mesh.GetVertexX(i)), -*(obj_mesh.GetVertexY(i)), *(obj_mesh.GetVertexZ(i))));
+		// x and y are inverted due to PS2 convention
+		points_usd.push_back(GfVec3f(-*(obj_mesh.GetVertexX(i)), -*(obj_mesh.GetVertexY(i)), *(obj_mesh.GetVertexZ(i))));
 	}
 	mesh.CreatePointsAttr().Set(points_usd);
 
@@ -231,13 +232,9 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 	VtIntArray faceVertexIndices;
 	faceVertexIndices.reserve(obj_mesh.GetNFaces()*3);
 	for(size_t i=0; i<obj_mesh.GetNFaces(); i++) {
-		// faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert1);
-		// faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert2);
-		// faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert3);
-
-		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert3);
-		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert2);
 		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert1);
+		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert2);
+		faceVertexIndices.push_back(obj_mesh.GetFace(i)->vert3);
 	}
 	mesh.CreateFaceVertexCountsAttr().Set(faceVertexCounts);
 	mesh.CreateFaceVertexIndicesAttr().Set(faceVertexIndices);
@@ -268,12 +265,12 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 	VtArray<GfVec4f> texture_data_usd;
 	texture_data_usd.reserve(128*128);
 	for(int i=0; i<128*128; i++) {
-		// texture_data_usd.push_back(GfVec4f( static_cast<float>((texture_data[i] >> 24) & 0xff) / 255.0f,
-		// 									static_cast<float>((texture_data[i] >> 16) & 0xff) / 255.0f,
-		// 									static_cast<float>((texture_data[i] >>  8) & 0xff) / 255.0f,
-		// 									static_cast<float>((texture_data[i])       & 0xff) / 255.0f ));
+		texture_data_usd.push_back(GfVec4f( static_cast<float>((texture_data[i] >> 24) & 0xff) / 255.0f,
+											static_cast<float>((texture_data[i] >> 16) & 0xff) / 255.0f,
+											static_cast<float>((texture_data[i] >>  8) & 0xff) / 255.0f,
+											static_cast<float>((texture_data[i])       & 0xff) / 255.0f ));
 
-		texture_data_usd.push_back(GfVec4f( 1.0, 0.0, 0.0, 1.0 ));
+		// texture_data_usd.push_back(GfVec4f( 1.0, 0.0, 0.0, 1.0 ));
 	}
 
 	if(verbose_output)
@@ -281,26 +278,29 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 
 	// Setting up material, with a shader and diffuse color input
 	UsdShadeMaterial material = UsdShadeMaterial::Define(stage, SdfPath("/defaultMesh/Material"));
-	UsdShadeShader shader = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/Shader"));
+	UsdShadeShader shader = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/PreviewSurface"));
 	shader.CreateIdAttr(VtValue("UsdPreviewSurface"));
+	shader.SetShaderId(TfToken("ND_UsdPreviewSurface_surfaceshader"));
+	shader.CreateInput(TfToken("roughness"), SdfValueTypeNames->Float).Set(1.0);
 
-	material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), TfToken("surface"));
+	material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), TfToken("out"));
 	// UsdShadeInput diffuseColorInput = shader.CreateInput(TfToken("diffuseColor"), SdfValueTypeNames->Color3f);
 
-	UsdShadeShader stReader = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/TextureReader"));
-	stReader.CreateIdAttr(VtValue("UsdPrimvarReader_float2"));
+	// UsdShadeShader diffuseTexture = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/diffuseTexture"));
+	// diffuseTexture.CreateIdAttr(VtValue("UsdUVTexture"));
+	// diffuseTexture.SetShaderId(TfToken("ND_UsdUVTexture"));
+	// diffuseTexture.CreateInput(TfToken("textureArray"), SdfValueTypeNames->Float4Array).Set(texture_data_usd);
+	// diffuseTexture.CreateOutput(TfToken("RGBA"), SdfValueTypeNames->Color4f);
 
-	UsdShadeShader diffuseTextureSampler = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/DiffuseTexture"));
-	diffuseTextureSampler.CreateIdAttr(VtValue("UsdUVTexture"));
-	diffuseTextureSampler.CreateInput(TfToken("textureArray"), SdfValueTypeNames->Float4Array).Set(texture_data_usd);
-	diffuseTextureSampler.CreateInput(TfToken("st"), SdfValueTypeNames->Float2).ConnectToSource(stReader.ConnectableAPI(), TfToken("result"));
-	diffuseTextureSampler.CreateOutput(TfToken("rgb"), SdfValueTypeNames->Float3);
-	shader.CreateInput(TfToken("diffuseColor"), SdfValueTypeNames->Color3f).ConnectToSource(diffuseTextureSampler.ConnectableAPI(), TfToken("rgb"));
+	UsdShadeShader textureFile = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/textureFile"));
+	textureFile.CreateIdAttr(VtValue("image_color3"));
+	textureFile.SetShaderId(TfToken("ND_image_color3"));
+	textureFile.CreateInput(TfToken("file"), SdfValueTypeNames->Asset).Set(SdfAssetPath("default.tga"));
+	textureFile.CreateOutput(TfToken("out"), SdfValueTypeNames->Color3f);
 
-	auto stInput = material.CreateInput(TfToken("frame:stPrimvarName"), SdfValueTypeNames->Token);
-	stInput.Set(TfToken("st"));
 
-	stReader.CreateInput(TfToken("varname"), SdfValueTypeNames->Token).ConnectToSource(stInput);
+	shader.CreateInput(TfToken("diffuseColor"), SdfValueTypeNames->Color3f).ConnectToSource(textureFile.ConnectableAPI(), TfToken("out"));
+
 	// Create a texture shader
 	// UsdShadeShader textureShader = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/TextureShader"));
 	// textureShader.CreateIdAttr(VtValue("UsdUVTexture"));

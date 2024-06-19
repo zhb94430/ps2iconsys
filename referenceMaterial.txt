@@ -1,0 +1,49 @@
+ def Material "Material_1"
+    {
+        prepend token outputs:mtlx:surface.connect = </defaultMesh/Material_1/PreviewSurface.outputs:out>
+        token outputs:realitykit:vertex
+        string[] ui:nodegraph:realitykit:node:attributesShowingChildren = ["outputs:mtlx:surface"]
+        float2 ui:nodegraph:realitykit:subgraphOutputs:pos = (372.39844, 100.84375)
+        float2 ui:nodegraph:realitykit:subgraphOutputs:size = (182, 99)
+        int ui:nodegraph:realitykit:subgraphOutputs:stackingOrder = 31
+
+        def Shader "PreviewSurface"
+        {
+            uniform token info:id = "ND_UsdPreviewSurface_surfaceshader"
+            color3f inputs:diffuseColor.connect = </defaultMesh/Material_1/Convert.outputs:out>
+            float inputs:ior = 1
+            float inputs:metallic
+            float3 inputs:normal
+            float inputs:opacity
+            float inputs:roughness = 1
+            token outputs:out
+            float2 ui:nodegraph:node:pos = (102.234375, 54.890625)
+            float2 ui:nodegraph:node:size = (149, 199)
+            int ui:nodegraph:node:stackingOrder = 43
+            string[] ui:nodegraph:realitykit:node:attributesShowingChildren = ["inputs:roughness"]
+        }
+
+        def Shader "UsdUVTexture"
+        {
+            uniform token info:id = "ND_UsdUVTexture"
+            asset inputs:file = @default.png@
+            color4f inputs:scale
+            float2 inputs:st
+            string inputs:wrapS
+            string inputs:wrapT
+            color4f outputs:rgba
+            float2 ui:nodegraph:node:pos = (-375.35547, 4.609375)
+            float2 ui:nodegraph:node:size = (142, 217)
+            int ui:nodegraph:node:stackingOrder = 37
+        }
+
+        def Shader "Convert"
+        {
+            uniform token info:id = "ND_convert_color4_color3"
+            prepend color4f inputs:in.connect = </defaultMesh/Material_1/UsdUVTexture.outputs:rgba>
+            color3f outputs:out
+            float2 ui:nodegraph:node:pos = (-132.97266, 33.85547)
+            float2 ui:nodegraph:node:size = (136, 40)
+            int ui:nodegraph:node:stackingOrder = 42
+        }
+    }
