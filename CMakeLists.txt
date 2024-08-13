@@ -12,6 +12,27 @@ add_compile_options(-Wall $<$<CONFIG:DEBUG>:-g> $<$<CONFIG:RELEASE>:-O2>)
 include_directories(/Users/Peter/GitRepos/OpenUSD_Install/include)
 link_directories(/Users/Peter/GitRepos/OpenUSD_Install/lib)
 
+include_directories(/opt/homebrew/Cellar/libpng/1.6.43/include)
+link_directories(/opt/homebrew/Cellar/libpng/1.6.43/lib)
+
+# # Check if we are on macOS with ARM architecture
+# if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+#     # Set CMake prefix path to prioritize Homebrew on ARM macOS
+    # set(CMAKE_PREFIX_PATH "/opt/homebrew/lib/" ${CMAKE_PREFIX_PATH})
+# endif()
+
+# libpng
+# set(PNG_ROOT "/opt/homebrew/opt/libpng")
+# find_package(PNG REQUIRED)
+
+# Debug messages
+# message(STATUS "Found libpng version: ${PNG_VERSION}")
+# message(STATUS "PNG include directories: ${PNG_INCLUDE_DIRS}")
+# message(STATUS "PNG libraries: ${PNG_LIBRARIES}")
+# message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+
+# include_directories(${PNG_INCLUDE_DIRS})
+
 # Add source files for each target
 add_executable(ps2icon_to_obj 
     src/obj_loader.cpp 
@@ -44,6 +65,6 @@ add_executable(ps2icon_to_obj
 #     src/iconsys_builder.cpp)
 
 # Link each executable with the required USD libraries
-target_link_libraries(ps2icon_to_obj usd_usd usd_usdGeom usd_sdf usd_tf usd_vt usd_usdShade) 
+target_link_libraries(ps2icon_to_obj usd_usd usd_usdGeom usd_sdf usd_tf usd_vt usd_usdShade usd_usdUtils usd_usdMtlx png) 
 # target_link_libraries(obj_to_ps2icon usd_usd usd_usdGeom) 
 # target_link_libraries(iconsys_builder usd_usd usd_usdGeom)

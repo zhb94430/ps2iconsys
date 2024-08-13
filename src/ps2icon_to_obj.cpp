@@ -13,6 +13,7 @@
 // OpenUSD Includes
 #include "pxr/pxr.h"
 #include "pxr/usd/usd/stage.h"
+#include "pxr/usd/usdUtils/usdzPackage.h"
 #include "pxr/usd/usdGeom/mesh.h"
 #include "pxr/usd/usdGeom/primvarsAPI.h"
 #include "pxr/usd/usdShade/material.h"
@@ -20,6 +21,12 @@
 #include "pxr/usd/usdShade/materialBindingAPI.h"
 #include "pxr/base/vt/array.h"
 #include "pxr/base/gf/vec3f.h"
+
+// Other libs
+extern "C"
+{
+	#include <png.h>
+}
 
 char const* ps2_input_file      = NULL;		///< path to the input file
 char const* obj_output_file     = NULL;		///< path to the output file
@@ -135,9 +142,63 @@ void WriteOBJFile(PS2Icon* ps2_icon)
 		std::cout << "done." << std::endl;
 }
 
+bool WritePNG(const char* filename, unsigned char* buffer, int width, int height) {
+    FILE* fp;
+	png_structp png;
+	png_infop info;
+	
+	fp = fopen(filename, "wb");
+    if(!fp) return false;
+
+	// Current Error
+	// https://stackoverflow.com/questions/65589714/read-and-write-a-png-file-using-libpng-in-c
+    png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+	if(!png) 
+	{
+		fclose(fp);
+		return false;
+	}
+
+    info = png_create_info_struct(png);
+	if(!info)
+	{
+		fclose(fp);
+		return false;
+	}
+
+    // if(setjmp(png_jmpbuf(png))) return false;
+
+    png_init_io(png, fp);
+
+    // Output is 8bit depth, RGBA format.
+    png_set_IHDR(
+        png,
+        info,
+        width, height,
+        8,
+        PNG_COLOR_TYPE_RGBA,
+        PNG_INTERLACE_NONE,
+        PNG_COMPRESSION_TYPE_DEFAULT,
+        PNG_FILTER_TYPE_DEFAULT
+    );
+    png_write_info(png, info);
+
+    for(int y = 0; y < height; y++) {
+        png_write_row(png, buffer + y * width * 4);
+    }
+
+    png_write_end(png, nullptr);
+
+    fclose(fp);
+    png_destroy_write_struct(&png, &info);
+    return true;
+}
+
 void WriteTextureFile(PS2Icon* ps2_icon)
 {
 	unsigned int texture_data[128*128];
+	unsigned char texture_data_png[128*128];
+
 	if(verbose_output)
 		std::cout << " * Convert texture data from \"" << ps2_input_file << "\"..." ;
 	ps2_icon->GetTextureData(texture_data);
@@ -157,17 +218,36 @@ void WriteTextureFile(PS2Icon* ps2_icon)
 		}
 	}
 
+	// Convert existing texture data to PNG RGBA
+	for (int i = 0; i < 128 * 128; ++i) {
+        texture_data_png[i * 4 + 0] = (texture_data[i] >> 16) & 0xFF; // R
+        texture_data_png[i * 4 + 1] = (texture_data[i] >> 8) & 0xFF;  // G
+        texture_data_png[i * 4 + 2] = texture_data[i] & 0xFF;         // B
+        texture_data_png[i * 4 + 3] = (texture_data[i] >> 24) & 0xFF; // A
+    }
+
 	if(verbose_output)
 		std::cout << "done." << std::endl;
 
 	if(verbose_output)
 		std::cout << " * Writing texture to file \"" << texture_output_file << "\"...";
+	// try {
+	// 	GhulbusUtil::WriteImage(texture_output_file, texture_data, 128, 128);
+	// } catch( Ghulbus::gbException e ) {
+	// 	std::cout << "\nError while writing to \"" << texture_output_file << "\"" << std::endl;
+	// 	exit(1);
+	// }
+
 	try {
-		GhulbusUtil::WriteImage(texture_output_file, texture_data, 128, 128);
-	} catch( Ghulbus::gbException e ) {
-		std::cout << "\nError while writing to \"" << texture_output_file << "\"" << std::endl;
-		exit(1);
-	}
+        if (!WritePNG(texture_output_file, texture_data_png, 128, 128)) {
+            throw std::runtime_error("Failed to write PNG file");
+        }
+    } catch (const std::exception& e) {
+        std::cout << "\nError while writing to \"" << texture_output_file << "\": " << e.what() << std::endl;
+        exit(1);
+    }
+
+
 	if(verbose_output)
 		std::cout << "done." << std::endl;
 }
@@ -203,7 +283,7 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 	points_usd.reserve(obj_mesh.GetNVertices());
 	for(size_t i=0; i<obj_mesh.GetNVertices(); i++) {
 		// x and y are inverted due to PS2 convention
-		points_usd.push_back(GfVec3f(-*(obj_mesh.GetVertexX(i)), -*(obj_mesh.GetVertexY(i)), *(obj_mesh.GetVertexZ(i))));
+		points_usd.push_back(GfVec3f(*(obj_mesh.GetVertexX(i)), -*(obj_mesh.GetVertexY(i)), -*(obj_mesh.GetVertexZ(i))));
 	}
 	mesh.CreatePointsAttr().Set(points_usd);
 
@@ -276,28 +356,33 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 	if(verbose_output)
 		std::cout << "done." << std::endl;
 
-	// Setting up material, with a shader and diffuse color input
 	UsdShadeMaterial material = UsdShadeMaterial::Define(stage, SdfPath("/defaultMesh/Material"));
+
+	// Main pbr shader	
 	UsdShadeShader shader = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/PreviewSurface"));
 	shader.CreateIdAttr(VtValue("UsdPreviewSurface"));
-	shader.SetShaderId(TfToken("ND_UsdPreviewSurface_surfaceshader"));
-	shader.CreateInput(TfToken("roughness"), SdfValueTypeNames->Float).Set(1.0);
+	shader.SetShaderId(TfToken("UsdPreviewSurface"));
+	shader.CreateInput(TfToken("roughness"), SdfValueTypeNames->Float).Set(1.f);
+	shader.CreateOutput(TfToken("surface"), SdfValueTypeNames->Token);
 
-	material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), TfToken("out"));
-	// UsdShadeInput diffuseColorInput = shader.CreateInput(TfToken("diffuseColor"), SdfValueTypeNames->Color3f);
+	// Setting up material tokens in usda for Apple compatibility
+	material.CreateSurfaceOutput(TfToken("mtlx"));
+	material.CreateOutput(TfToken("realitykit:vertex"), SdfValueTypeNames->Token);
+	material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), TfToken("surface"));
 
-	// UsdShadeShader diffuseTexture = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/diffuseTexture"));
-	// diffuseTexture.CreateIdAttr(VtValue("UsdUVTexture"));
-	// diffuseTexture.SetShaderId(TfToken("ND_UsdUVTexture"));
-	// diffuseTexture.CreateInput(TfToken("textureArray"), SdfValueTypeNames->Float4Array).Set(texture_data_usd);
-	// diffuseTexture.CreateOutput(TfToken("RGBA"), SdfValueTypeNames->Color4f);
+	// UV Primvar Reader
+	UsdShadeShader uvReader = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/uvReader"));
+	uvReader.SetShaderId(TfToken("UsdPrimvarReader_float2"));
+	uvReader.CreateInput(TfToken("varname"), SdfValueTypeNames->Token).Set(TfToken("st"));
+	uvReader.CreateOutput(TfToken("result"), SdfValueTypeNames->Float2);
 
+	// Texture Base
 	UsdShadeShader textureFile = UsdShadeShader::Define(stage, SdfPath("/defaultMesh/Material/textureFile"));
 	textureFile.CreateIdAttr(VtValue("image_color3"));
-	textureFile.SetShaderId(TfToken("ND_image_color3"));
-	textureFile.CreateInput(TfToken("file"), SdfValueTypeNames->Asset).Set(SdfAssetPath("default.tga"));
+	textureFile.SetShaderId(TfToken("UsdUVTexture"));
+	textureFile.CreateInput(TfToken("file"), SdfValueTypeNames->Asset).Set(SdfAssetPath("default.png"));
+	textureFile.CreateInput(TfToken("st"), SdfValueTypeNames->Float2).ConnectToSource(uvReader.ConnectableAPI(), TfToken("result"));
 	textureFile.CreateOutput(TfToken("out"), SdfValueTypeNames->Color3f);
-
 
 	shader.CreateInput(TfToken("diffuseColor"), SdfValueTypeNames->Color3f).ConnectToSource(textureFile.ConnectableAPI(), TfToken("out"));
 
@@ -317,6 +402,12 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 
     // Save the stage to a file
     stage->Save();
+
+	// Package usdz
+	if (!UsdUtilsCreateNewARKitUsdzPackage(SdfAssetPath("default.usda"), "/Users/Peter/GitRepos/ps2iconsys/default.usdz"))
+	{
+		std::cout << "Usdz failed" << std::endl;
+	}
 }
 
 int main(int argc, char* argv[])
@@ -330,7 +421,7 @@ int main(int argc, char* argv[])
 	}
 	std::cout << "PS2Icon to OBJ Converter  V-1.0\n by Ghulbus Inc.  (http://www.ghulbus-inc.de/)\n" << std::endl;
 	if(!obj_output_file)     { obj_output_file = "default.obj"; }
-	if(!texture_output_file) { texture_output_file = "default.tga"; }
+	if(!texture_output_file) { texture_output_file = "default.png"; }
 
 	PS2Icon* ps2_icon = LoadPS2Icon();
 
