@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <cmath>
 #include <map>
 #include <algorithm>
 

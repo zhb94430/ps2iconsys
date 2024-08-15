@@ -11,16 +11,16 @@
 #include "../gbLib/include/gbImageLoader.hpp"
 
 // OpenUSD Includes
-#include "pxr/pxr.h"
-#include "pxr/usd/usd/stage.h"
-#include "pxr/usd/usdUtils/usdzPackage.h"
-#include "pxr/usd/usdGeom/mesh.h"
-#include "pxr/usd/usdGeom/primvarsAPI.h"
-#include "pxr/usd/usdShade/material.h"
-#include "pxr/usd/usdShade/shader.h"
-#include "pxr/usd/usdShade/materialBindingAPI.h"
-#include "pxr/base/vt/array.h"
-#include "pxr/base/gf/vec3f.h"
+#include <pxr/pxr.h>
+#include <pxr/usd/usd/stage.h>
+#include <pxr/usd/usdUtils/usdzPackage.h>
+#include <pxr/usd/usdGeom/mesh.h>
+#include <pxr/usd/usdGeom/primvarsAPI.h>
+#include <pxr/usd/usdShade/material.h>
+#include <pxr/usd/usdShade/shader.h>
+#include <pxr/usd/usdShade/materialBindingAPI.h>
+#include <pxr/base/vt/array.h>
+#include <pxr/base/gf/vec3f.h>
 
 // Other libs
 extern "C"

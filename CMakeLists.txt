@@ -8,28 +8,33 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Compiler options
 add_compile_options(-Wall $<$<CONFIG:DEBUG>:-g> $<$<CONFIG:RELEASE>:-O2>)
 
-# Include directories
-include_directories(/Users/Peter/GitRepos/OpenUSD_Install/include)
-link_directories(/Users/Peter/GitRepos/OpenUSD_Install/lib)
+# Configure OpenUSD install path
+list(APPEND CMAKE_PREFIX_PATH "/home/peter/GitRepos/OpenUSD_Install/")
 
-include_directories(/opt/homebrew/Cellar/libpng/1.6.43/include)
-link_directories(/opt/homebrew/Cellar/libpng/1.6.43/lib)
+if(APPLE)
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+        list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/Cellar/")
+    else()
+        list(APPEND CMAKE_PREFIX_PATH "/usr/local/Cellar/")
+    endif()
+endif()
 
-# # Check if we are on macOS with ARM architecture
-# if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-#     # Set CMake prefix path to prioritize Homebrew on ARM macOS
-    # set(CMAKE_PREFIX_PATH "/opt/homebrew/lib/" ${CMAKE_PREFIX_PATH})
-# endif()
 
 # libpng
 # set(PNG_ROOT "/opt/homebrew/opt/libpng")
-# find_package(PNG REQUIRED)
+find_package(PNG REQUIRED)
+find_package(pxr REQUIRED)
+find_package(Python3 COMPONENTS Development)
+
+include_directories(${Python3_INCLUDE_DIRS})
+include_directories(${PXR_INCLUDE_DIRS})
 
 # Debug messages
-# message(STATUS "Found libpng version: ${PNG_VERSION}")
-# message(STATUS "PNG include directories: ${PNG_INCLUDE_DIRS}")
-# message(STATUS "PNG libraries: ${PNG_LIBRARIES}")
-# message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+message(STATUS "Found libpng version: ${PNG_VERSION}")
+message(STATUS "PNG include directories: ${PNG_INCLUDE_DIRS}")
+message(STATUS "PNG libraries: ${PNG_LIBRARIES}")
+message(STATUS "pxr libraries: ${PXR_LIBRARIES}")
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 # include_directories(${PNG_INCLUDE_DIRS})
 
@@ -62,9 +67,11 @@ add_executable(ps2icon_to_obj
 #     gbLib/src/gbImageLoader_TGA.cpp 
 #     gbLib/src/gbImageLoader_BMP.cpp 
 #     gbLib/src/gbException.cpp 
-#     src/iconsys_builder.cpp)
+#     src/iconsys_buil-lboost_python312der.cpp)
 
 # Link each executable with the required USD libraries
-target_link_libraries(ps2icon_to_obj usd_usd usd_usdGeom usd_sdf usd_tf usd_vt usd_usdShade usd_usdUtils usd_usdMtlx png) 
+# target_link_libraries(ps2icon_to_obj usd_usd usd_usdGeom usd_sdf usd_tf usd_vt usd_usdShade usd_usdUtils usd_usdMtlx png pxr ${Python3_LIBRARIES} ${Boost_LIBRARIES} -lboost_python312 -lpython3.12) 
+target_link_libraries(ps2icon_to_obj ${Python3_LIBRARIES} png 
+usd usdGeom sdf tf vt usdShade usdUtils usdMtlx) 
 # target_link_libraries(obj_to_ps2icon usd_usd usd_usdGeom) 
 # target_link_libraries(iconsys_builder usd_usd usd_usdGeom)
