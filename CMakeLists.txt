@@ -13,21 +13,29 @@ list(APPEND CMAKE_PREFIX_PATH "/home/peter/GitRepos/OpenUSD_Install/")
 
 if(APPLE)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-        list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/Cellar/")
+        list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/")
     else()
-        list(APPEND CMAKE_PREFIX_PATH "/usr/local/Cellar/")
+        list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/")
     endif()
 endif()
 
 
-# libpng
-# set(PNG_ROOT "/opt/homebrew/opt/libpng")
-find_package(PNG REQUIRED)
 find_package(pxr REQUIRED)
+
+# TODO, Still need to add in the extra statements
+# https://stackoverflow.com/questions/36523911/osx-homebrew-cmake-libpng-version-mismatch-issue
+if(APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(PNG libpng16 REQUIRED)
+else()
+    find_package(PNG REQUIRED)
+endif()
+
 find_package(Python3 COMPONENTS Development)
 
-include_directories(${Python3_INCLUDE_DIRS})
 include_directories(${PXR_INCLUDE_DIRS})
+include_directories(${PNG_INCLUDE_DIRS})
+include_directories(${Python3_INCLUDE_DIRS})
 
 # Debug messages
 message(STATUS "Found libpng version: ${PNG_VERSION}")
@@ -69,9 +77,13 @@ add_executable(ps2icon_to_obj
 #     gbLib/src/gbException.cpp 
 #     src/iconsys_buil-lboost_python312der.cpp)
 
+# target_include_directories(ps2icon_to_obj PRIVATE ${PNG_INCLUDE_DIRS})
+if(APPLE)
+    target_link_directories(ps2icon_to_obj PRIVATE ${PNG_LIBRARY_DIRS})
+endif()
+
 # Link each executable with the required USD libraries
 # target_link_libraries(ps2icon_to_obj usd_usd usd_usdGeom usd_sdf usd_tf usd_vt usd_usdShade usd_usdUtils usd_usdMtlx png pxr ${Python3_LIBRARIES} ${Boost_LIBRARIES} -lboost_python312 -lpython3.12) 
-target_link_libraries(ps2icon_to_obj ${Python3_LIBRARIES} png 
-usd usdGeom sdf tf vt usdShade usdUtils usdMtlx) 
+target_link_libraries(ps2icon_to_obj ${Python3_LIBRARIES} ${PNG_LIBRARIES} usd usdGeom sdf tf vt usdShade usdUtils usdMtlx) 
 # target_link_libraries(obj_to_ps2icon usd_usd usd_usdGeom) 
 # target_link_libraries(iconsys_builder usd_usd usd_usdGeom)
