@@ -410,6 +410,11 @@ void WriteUSDAFile(PS2Icon* ps2_icon)
 	}
 }
 
+// TODO: Integrate PSV Save converter to streamline the process
+// 1. Extract .ico file from PS2 save
+// 2. Feed the .ico file into the code
+// 3. Wait for conversion
+
 int main(int argc, char* argv[])
 {
 	ParseCommandLine(argc, argv);
